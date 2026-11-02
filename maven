@@ -1,0 +1,21 @@
+Important commands for your Maven + SonarQube project
+Command	             Purpose
+mvn clean	           Remove previous build output
+mvn compile	         Compile Java source
+mvn test	           Execute unit tests
+mvn package	         Generate JAR
+mvn verify	         Execute verification lifecycle
+mvn sonar:sonar	     Run SonarQube analysis using configured plugin
+mvn clean verify	    Clean, test and verify
+
+
+
+Full analysis command:
+
+mvn clean verify
+
+mvn org.sonarsource.scanner.maven:sonar-maven-plugin:5.5.0.6356:sonar \
+-Dsonar.projectKey=maven-java-demo \
+-Dsonar.host.url=http://localhost:9000 \
+-Dsonar.token="$SONAR_TOKEN" \
+-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
