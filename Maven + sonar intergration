@@ -1,0 +1,561 @@
+Project: Maven + SonarQube – Java Code Quality Analysis Without Jenkins
+Standalone DevOps Project
+ No Jenkins / No CI/CD
+
+1. Project overview
+In this hands-on project, we will integrate Apache Maven with SonarQube to perform static code analysis on a Java application.
+
+The main objective is to build a Java application using Maven and analyze its source code using SonarQube to identify bugs, vulnerabilities, code smells, security issues, and code-quality problems.
+
+This is a standalone project. We will execute Maven commands manually from the terminal and send the analysis results to SonarQube.
+
+
+Real-world use case
+Imagine a Java development team working on an e-commerce application.
+
+Developers write Java code and use Maven to build the application. Before the application is released, the team wants to check:
+- Are there any bugs in the Java code?
+- Are there any security vulnerabilities?
+- Is the code duplicated?
+- Are there unnecessary or poorly written methods?
+- Does the code follow coding standards?
+- Does the project meet the required quality standards?
+SonarQube helps developers identify these problems before releasing the application.
+
+
+Step 1 – Prepare the Linux environment
+For this implementation, we will use an AWS EC2 Ubuntu instance or an Ubuntu virtual machine.
+
+Recommended resources:
+Resource	         Requirement
+OS	           Ubuntu 22.04 / 24.04
+CPU	            2–4 vCPUs
+RAM	             8 GB recommended for combined setup
+Storage	         30 GB or more
+Java	           JDK 21
+Maven	           3.9.x
+Docker	          Latest stable version
+
+SonarQube Community Build recommends at least 4 GB RAM and 2 CPU cores for a small installation. If Maven and SonarQube run on the same EC2, 8 GB RAM is a better practical starting point.
+
+
+4.1 Update the server
+sudo apt update
+sudo apt upgrade -y
+
+4.2 Install Java 21
+sudo apt install openjdk-21-jdk -y
+
+Verify:
+java -version
+
+4.3 Install Maven
+sudo apt install maven -y
+
+4.4 Install Docker
+sudo apt install docker.io docker-compose-v2 -y
+
+sudo systemctl enable docker
+sudo systemctl start docker
+
+Verify:
+docker --version
+docker compose version
+
+Allow your Linux user to execute Docker commands:
+sudo usermod -aG docker $USER
+
+
+5. Step 2 – Install SonarQube using Docker Compose
+We will run SonarQube Community Build using Docker Compose.
+
+Our setup contains:
+- SonarQube container: Performs static code analysis.
+- PostgreSQL container: Stores SonarQube application data.
+- Docker volumes: Preserve SonarQube and database information.
+
+
+
+5.1 Configure Linux kernel requirements
+SonarQube uses Elasticsearch internally.
+
+sudo sysctl -w vm.max_map_count=524288
+sudo sysctl -w fs.file-max=131072
+
+sudo nano /etc/sysctl.conf
+
+vm.max_map_count=524288
+fs.file-max=131072
+
+apply
+
+5.2 Create a project directory
+
+mkdir -p ~/maven-sonarqube-project
+cd ~/maven-sonarqube-project
+
+nano docker-compose.yml
+
+services:
+
+  sonarqube-db:
+    image: postgres:16
+    container_name: sonarqube-db
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar_password
+      POSTGRES_DB: sonarqube
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube
+    depends_on:
+      - sonarqube-db
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonarqube-db:5432/sonarqube
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar_password
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    restart: unless-stopped
+
+volumes:
+  postgresql_data:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+
+
+
+5.3 Start SonarQube
+
+docker compose up -d
+
+docker ps
+
+docker logs -f sonarqube
+
+
+5.4 Access SonarQube dashboard
+
+http://EC2-PUBLIC-IP:9000
+
+Default credentials:
+Username: admin
+Password: admin
+
+6. Step 3 – Create a Java Maven application
+
+Now we will create a Java application.
+
+Our application name:
+
+Employee Management Application
+
+The application will contain basic employee operations:
+- Add employee.
+- Retrieve employee details.
+- Calculate employee salary.
+- Validate employee information.
+- Perform unit testing.
+We will use Maven to build and test this application.
+
+6.1 Create the Maven project structure
+Execute:
+
+mkdir -p employee-management/src/main/java/com/aa/employee
+mkdir -p employee-management/src/test/java/com/aa/employee
+
+
+Our final project structure:
+
+employee-management/
+│
+├── pom.xml
+│
+├── src/
+│   ├── main/
+│   │   └── java/
+│   │       └── com/
+│   │           └── aa/
+│   │               └── employee/
+│   │                   ├── Employee.java
+│   │                   ├── EmployeeService.java
+│   │                   └── Main.java
+│   │
+│   └── test/
+│       └── java/
+│           └── com/
+│               └── aa/
+│                   └── employee/
+│                       └── EmployeeServiceTest.java
+
+
+
+6.2 Create pom.xml
+nano pom.xml
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.aa</groupId>
+    <artifactId>employee-management</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <junit.version>5.11.4</junit.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.13</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>5.5.0.6356</version>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>
+
+
+
+6.3 Create Employee.java
+
+nano src/main/java/com/aa/employee/Employee.java
+
+package com.aa.employee;
+
+public class Employee {
+
+    private int id;
+    private String name;
+    private double salary;
+
+    public Employee(int id, String name, double salary) {
+        this.id = id;
+        this.name = name;
+        this.salary = salary;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public double getSalary() {
+        return salary;
+    }
+
+    public void setSalary(double salary) {
+        this.salary = salary;
+    }
+}
+
+
+6.4 Create EmployeeService.java
+
+nano src/main/java/com/aa/employee/EmployeeService.java
+
+package com.aa.employee;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class EmployeeService {
+
+    private final List<Employee> employees = new ArrayList<>();
+
+    public void addEmployee(Employee employee) {
+
+        if (employee == null) {
+            throw new IllegalArgumentException("Employee cannot be null");
+        }
+
+        if (employee.getName() == null ||
+            employee.getName().isBlank()) {
+            throw new IllegalArgumentException("Employee name is required");
+        }
+
+        if (employee.getSalary() < 0) {
+            throw new IllegalArgumentException("Invalid salary");
+        }
+
+        employees.add(employee);
+    }
+
+    public Employee getEmployee(int id) {
+
+        for (Employee employee : employees) {
+
+            if (employee.getId() == id) {
+                return employee;
+            }
+        }
+
+        return null;
+    }
+
+    public double calculateAnnualSalary(int id) {
+
+        Employee employee = getEmployee(id);
+
+        if (employee == null) {
+            throw new IllegalArgumentException("Employee not found");
+        }
+
+        return employee.getSalary() * 12;
+    }
+
+    public List<Employee> getAllEmployees() {
+        return new ArrayList<>(employees);
+    }
+}
+
+
+6.5 Create Main.java
+
+nano src/main/java/com/aa/employee/Main.java
+
+package com.aa.employee;
+
+public class Main {
+
+    public static void main(String[] args) {
+
+        EmployeeService service = new EmployeeService();
+
+        Employee employee =
+                new Employee(101, "Rahul", 50000);
+
+        service.addEmployee(employee);
+
+        System.out.println("Employee ID: " +
+                employee.getId());
+
+        System.out.println("Employee Name: " +
+                employee.getName());
+
+        System.out.println("Monthly Salary: " +
+                employee.getSalary());
+
+        System.out.println("Annual Salary: " +
+                service.calculateAnnualSalary(101));
+    }
+}
+
+
+6.6 Create EmployeeServiceTest.java
+nano src/test/java/com/aa/employee/EmployeeServiceTest.java
+
+package com.aa.employee;
+
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class EmployeeServiceTest {
+
+    @Test
+    void testAddEmployee() {
+
+        EmployeeService service = new EmployeeService();
+
+        Employee employee =
+                new Employee(101, "Rahul", 50000);
+
+        service.addEmployee(employee);
+
+        assertEquals(1, service.getAllEmployees().size());
+    }
+
+    @Test
+    void testGetEmployee() {
+
+        EmployeeService service = new EmployeeService();
+
+        Employee employee =
+                new Employee(102, "Amit", 60000);
+
+        service.addEmployee(employee);
+
+        assertEquals("Amit",
+                service.getEmployee(102).getName());
+    }
+
+    @Test
+    void testCalculateAnnualSalary() {
+
+        EmployeeService service = new EmployeeService();
+
+        Employee employee =
+                new Employee(103, "John", 40000);
+
+        service.addEmployee(employee);
+
+        assertEquals(480000,
+                service.calculateAnnualSalary(103));
+    }
+
+    @Test
+    void testInvalidEmployee() {
+
+        EmployeeService service = new EmployeeService();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.addEmployee(null));
+    }
+}
+
+7. Step 4 – Build the Maven application
+Now we will execute Maven commands.
+
+mvn clean
+
+Compile the Java application
+mvn compile
+
+Execute unit tests
+mvn test
+
+Generate the JaCoCo coverage report
+mvn verify
+Report location: target/site/jacoco/index.html
+
+
+8. Step 5 – Connect Maven with SonarQube
+
+
+This is the main integration step.
+
+Our Maven project is ready, and SonarQube is running on port 9000.
+
+Now we need to configure SonarQube authentication.
+
+8.1 Create a project in SonarQube
+Open:
+http://EC2-PUBLIC-IP:9000
+
+Navigate to:
+
+Projects → Create Project → Manually
+
+Enter:
+
+Project Display Name: Employee Management
+Project Key: employee-management
+Main Branch Name: main
+
+
+8.2 Generate an authentication token
+Go to:
+
+My Account → Security → Generate Token
+
+Enter:
+
+Token Name: maven-sonarqube-token
+Token Type: Project Analysis Token
+Project: Employee Management
+
+
+8.3 Configure SonarQube environment variables
+On your Linux machine:
+
+export SONAR_HOST_URL="http://YOUR-EC2-PUBLIC-IP:9000"
+
+export SONAR_TOKEN="YOUR_GENERATED_TOKEN"
+
+echo $SONAR_HOST_URL
+
+
+8.4 Execute Maven SonarQube analysis
+Go to your Maven project:
+
+cd ~/maven-sonarqube-project/employee-management
+
+mvn clean verify
+
+mvn org.sonarsource.scanner.maven:sonar-maven-plugin:5.5.0.6356:sonar \
+-Dsonar.projectKey=employee-management \
+-Dsonar.host.url=$SONAR_HOST_URL \
+-Dsonar.token=$SONAR_TOKEN
+
+
+8.5 Open the project dashboard
+
+Click:
+
+Projects → Employee Management
+
+You should see the analysis dashboard.
+
+
+
+
+
+
+
+
+
