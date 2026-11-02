@@ -1,0 +1,566 @@
+SonarQube Complete Practical Guide: Components, Quality Gates, Quality Profiles, Rules and Code Analysis
+For your Maven + SonarQube project, let's go deeper into SonarQube. Rather than simply running the Maven scanner, you should understand how SonarQube works, how to configure its components, and how developers use the analysis results to improve Java code quality.
+
+This will make your project much stronger as a real-world DevOps training demonstration.
+1. What is SonarQube?
+SonarQube is a platform used to continuously inspect source code and identify quality and security problems.
+
+It helps developers identify:
+- Bugs – Potential functional errors.
+- Vulnerabilities – Security weaknesses.
+- Code Smells – Poor coding practices and maintainability problems.
+- Security Hotspots – Code that needs manual security review.
+- Code Coverage – How much code is covered by unit tests.
+- Code Duplication – Repeated blocks of code.
+- Technical Debt – Estimated effort required to fix maintainability issues.
+Real-time example:
+
+Suppose a Java developer writes this code:
+
+public class UserService {
+
+    public void getUser(String username) {
+
+        if (username == null) {
+            System.out.println("Invalid User");
+        }
+
+        System.out.println(username.length());
+    }
+}
+
+
+
+There is a potential NullPointerException because the code continues to call username.length() even when username is null.
+
+SonarQube can identify this potential bug during static code analysis.
+
+
+
+SonarQube has several important components:
+
+Component	    Responsibility
+SonarScanner - 	Scans source code
+SonarQube Server	- Receives and manages analysis
+Compute Engine	- Processes analysis reports
+Database	-     Stores projects, settings and analysis data
+Quality Profiles	-  Define which coding rules are active
+Quality Gates	-     Decide whether code meets quality requirements
+Projects	- Organize code analysis
+Issues	- Store detected code problems
+Dashboards	- Display analysis results
+
+
+
+
+Analysis workflow:
+
+1. Developer writes Java code.
+2. Maven builds the project.
+3. SonarScanner analyzes source code.
+4. Scanner sends the analysis report to SonarQube.
+5. Compute Engine processes the report.
+6. SonarQube evaluates active rules.
+7. Quality Gate evaluates configured conditions.
+8. Developer reviews the results in the dashboard.
+
+
+
+3. Important SonarQube components explained
+
+Component 1: Projects
+A project represents an application or codebase that you want to analyze.
+
+Example:
+
+Project Name: Maven Java Demo
+Project Key: maven-java-demo
+Main Branch: main
+
+
+How to create a project:
+1. Open SonarQube.
+2. Navigate to Projects.
+3. Select Create Project.
+4. Select Manually.
+5. Enter project name.
+6. Enter project key.
+7. Select the main branch.
+8. Create the project.
+
+Your project will now appear in the Projects dashboard.
+
+
+
+Component 2: Quality Profiles
+
+A Quality Profile defines the coding rules SonarQube applies when analyzing source code.
+
+Think of it this way:
+- Quality Profile = What rules should be checked?
+- Quality Gate = What conditions must the project satisfy?
+For example, Java Quality Profile rules can detect:
+
+Rule category	         Example
+Bug	                  Possible NullPointerException
+Security	            Weak cryptographic algorithm
+Code Smell	          Unused variables
+Maintainability	      Poor coding practices
+Reliability	          Incorrect exception handling
+
+
+
+How to create a Quality Profile
+
+Step 1: Open SonarQube.
+
+Step 2: Navigate to:
+Quality Profiles
+
+Step 3: Select the Java language.
+
+Step 4: Click Create.
+
+Step 5: Enter:
+Name: AA-Java-Quality-Profile
+Language: Java
+Parent: Sonar way
+
+Step 6: Create the profile.
+
+Step 7: Open your new profile.
+
+Step 8: Explore the available rules.
+
+Step 9: Activate additional rules or deactivate rules based on your requirements.
+Example:
+
+Suppose you want to detect unused local variables.
+1. Open your Java Quality Profile.
+2. Search for unused local variable rules.
+3. Open the relevant rule.
+4. Activate it if it is not already active.
+5. Run Maven analysis again.
+SonarQube will now apply that rule to your Java project.
+
+Note: Some rules are already active in the built-in Sonar way profile. You do not need to create every rule manually.
+
+
+Component 3: Quality Gates
+Most important for this project
+A Quality Gate is a set of conditions that determines whether your code meets the required quality standards.
+
+Think of a Quality Gate as a checkpoint.
+
+For example:
+Project Analysis
+       |
+       v
+Check Bugs
+       |
+       v
+Check Vulnerabilities
+       |
+       v
+Check Code Coverage
+       |
+       v
+Check Duplications
+       |
+       v
+Quality Gate Decision
+       |
+       +------> PASSED
+       |
+       +------> FAILED
+
+
+Example Quality Gate conditions:
+Condition	                             Requirement
+New Bugs	                               0
+New Vulnerabilities	                     0
+New Security Hotspots Reviewed	        100%
+New Code Coverage	At least              80%
+New Code Duplication	Less than         3%
+
+These are example project standards, not mandatory SonarQube defaults.
+
+
+How to create a custom Quality Gate
+Let's create one for your Maven Java project.
+
+Step 1: Open Quality Gates
+SonarQube Dashboard
+    → Quality Gates
+
+Step 2: Create a new gate
+Name: AA-Java-Production-Gate
+
+Step 3: Configure conditions
+For your learning project, use these example conditions on New Code:
+
+Metric	                                 Operator	        Threshold
+New Issues	                           Greater than	         0
+New Security Hotspots Reviewed	        Less than	          100%
+New Code Coverage	                       Less than	         80%
+New Duplicated Lines (%)	              Greater than	        3%
+
+
+
+The conditions mean:
+- If even one new issue is detected, fail the gate.
+- All new security hotspots must be reviewed.
+- At least 80% test coverage is expected.
+- Code duplication must not exceed 3%.
+These are similar to the recommended Sonar way quality standards.
+
+
+Step 4: Save the Quality Gate
+
+Click Save.
+
+Step 5: Assign the gate to your project
+
+Projects
+  → Maven Java Demo
+  → Project Settings
+  → Quality Gate
+
+
+Select:
+AA-Java-Production-Gate
+
+Save your changes.
+
+The custom gate will now evaluate the analysis of this project.
+
+
+Important: Quality Gate configuration and available condition metrics can differ by SonarQube edition and version. If you cannot find a particular metric, use the available equivalent in your Community Build installation. You can also start with the built-in Sonar way gate.
+
+
+How to understand Quality Gate results:
+
+Example:
+
+Suppose your analysis produces:
+Metric	                      Result          	Gate
+New Issues	                    0	                Pass
+Security Hotspots Reviewed	   100%	              Pass
+Coverage	                     65%	              Fail
+Duplication	                   2%	                Pass
+
+Quality Gate: FAILED
+Why? Your test coverage is 65%, but your configured requirement is 80%.
+
+Component 4: Rules
+Rules are the individual checks SonarQube performs against source code
+
+For example:
+
+Rule 1: Null pointer detection
+
+public class UserService {
+
+    public void display(String name) {
+
+        System.out.println(name.length());
+
+    }
+}
+
+If name is null, this code can throw a NullPointerException.
+
+Rule 2: Unused variables
+
+public void calculate() {
+
+    int a = 10;
+
+    int b = 20;
+
+    int result = a + b;
+
+}
+If result is never used, SonarQube may report an unused assignment or similar maintainability issue.
+
+Rule 3: Empty catch block
+try {
+
+    int result = 10 / 0;
+
+} catch (Exception e) {
+
+}
+
+Ignoring exceptions is poor coding practice.
+
+SonarQube has different rule categories and severities. The exact rule and severity depend on the active profile and SonarQube experience mode.
+
+
+How to explore and activate rules
+Navigate to:
+Quality Profiles
+    → Java
+    → AA-Java-Quality-Profile
+    → Activate More
+
+Search for a rule using its name or rule key.
+For example:
+
+NullPointerException
+Unused assignment
+Empty catch block
+Hard-coded credentials
+
+Open a rule to see:
+- Rule description.
+- Why it matters.
+- Noncompliant code example.
+- Compliant code example.
+- Rule severity.
+- Remediation guidance.
+Activate the rule if needed.
+
+Then rerun Maven analysis:
+
+mvn clean verify
+
+mvn org.sonarsource.scanner.maven:sonar-maven-plugin:5.5.0.6356:sonar \
+-Dsonar.projectKey=maven-java-demo \
+-Dsonar.host.url=http://localhost:9000 \
+-Dsonar.token="$SONAR_TOKEN"
+
+
+
+Component 5: Issues
+
+An Issue is a problem detected by SonarQube.
+
+Example:
+
+public class PaymentService {
+
+    public void processPayment(String cardNumber) {
+
+        System.out.println(cardNumber);
+
+    }
+}
+
+Logging sensitive payment information can introduce a security risk.
+
+SonarQube may identify security-sensitive coding patterns depending on the rules activated.
+
+How to view issues:
+
+Navigate to:
+Projects
+   → Maven Java Demo
+   → Issues
+
+You can filter by:
+- Language.
+- Rule.
+- Type or software quality.
+- Severity.
+- Status.
+- File.
+- Assignee.
+
+Issue lifecycle
+An issue can have different statuses depending on its workflow.
+Status	                      Meaning
+Open	                      Newly detected issue
+Confirmed	                  Accepted as a real issue
+Resolved	                Fixed or otherwise resolved
+Reopened	                 Issue detected again
+Accepted	                 Issue accepted without fixing
+False Positive	            Issue incorrectly identified
+
+The exact workflow options depend on the SonarQube version.
+
+Practical implementation:
+1. Open the Issues page.
+2. Click a detected issue.
+3. Review the affected source-code line.
+4. Read the explanation.
+5. Follow the suggested remediation.
+6. Fix the Java code.
+7. Run Maven analysis again.
+8. Verify the issue is resolved.
+
+Component 6: Security Hotspots
+This is an important security feature.
+
+A Security Hotspot is code that uses a security-sensitive feature and requires human review to determine whether it introduces a real vulnerability.
+
+Examples include:
+- Password handling.
+- Cryptographic algorithms.
+- File access.
+- HTTP requests.
+- Authentication-related code.
+- SQL query construction.
+
+Example:
+import java.security.MessageDigest;
+
+public class PasswordService {
+
+    public String hashPassword(String password)
+            throws Exception {
+
+        MessageDigest md =
+            MessageDigest.getInstance("MD5");
+
+        byte[] result =
+            md.digest(password.getBytes());
+
+        return result.toString();
+    }
+}
+
+MD5 is not appropriate for password hashing.
+
+A security rule may identify this as a hotspot or vulnerability depending on the rule.
+
+How to review a Security Hotspot
+Navigate:
+Project
+   → Security Hotspots
+
+1. Select the hotspot.
+2. Review the source code.
+3. Read the security explanation.
+4. Determine whether the code is safe.
+5. Choose the appropriate review outcome.
+Common review outcomes include:
+- Safe.
+- Fixed.
+- Acknowledged.
+The exact labels and available actions depend on the version.
+
+Important distinction:
+- Vulnerability: A security issue that should be fixed.
+- Security Hotspot: A security-sensitive code location that requires review.
+A hotspot is not automatically a confirmed vulnerability.
+
+
+
+Component 7: Code Coverage
+Code coverage tells you how much of your application code is executed by unit tests.
+
+Example:
+
+Suppose your application contains 100 executable lines.
+
+Your unit tests execute 80 lines.
+
+
+How to configure coverage in Maven
+SonarQube does not automatically generate Java coverage data just because JUnit tests are running.
+
+For this, we use JaCoCo.
+
+Add this plugin inside the plugins section of your pom.xml:
+
+<plugin>
+    <groupId>org.jacoco</groupId>
+    <artifactId>jacoco-maven-plugin</artifactId>
+    <version>0.8.13</version>
+
+    <executions>
+
+        <execution>
+            <goals>
+                <goal>prepare-agent</goal>
+            </goals>
+        </execution>
+
+        <execution>
+            <id>report</id>
+            <phase>verify</phase>
+
+            <goals>
+                <goal>report</goal>
+            </goals>
+        </execution>
+
+    </executions>
+</plugin>
+
+
+Run:
+mvn clean verify
+
+JaCoCo generates:
+target/site/jacoco/jacoco.xml
+
+Now run SonarQube analysis:
+mvn org.sonarsource.scanner.maven:sonar-maven-plugin:5.5.0.6356:sonar \
+-Dsonar.projectKey=maven-java-demo \
+-Dsonar.host.url=http://localhost:9000 \
+-Dsonar.token="$SONAR_TOKEN" \
+-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+
+Now SonarQube can import the JaCoCo coverage report.
+
+You can see coverage percentages on your project dashboard and in individual source files.
+
+
+Component 8: Code Duplication
+Code duplication means writing the same or very similar code in multiple places.
+
+Example:
+
+public class EmployeeService {
+
+    public double calculateBonus(double salary) {
+        return salary * 0.10;
+    }
+
+    public double calculateIncentive(double salary) {
+        return salary * 0.10;
+    }
+}
+
+Both methods contain similar logic.
+
+SonarQube can identify duplicated code blocks.
+
+How to view duplication:
+
+Projects
+   → Maven Java Demo
+   → Measures
+   → Duplications
+
+To fix duplication, extract common logic into a reusable method.
+
+public class EmployeeService {
+
+    private double calculatePercentage(
+            double salary, double percentage) {
+
+        return salary * percentage;
+    }
+
+    public double calculateBonus(double salary) {
+        return calculatePercentage(salary, 0.10);
+    }
+
+    public double calculateIncentive(double salary) {
+        return calculatePercentage(salary, 0.10);
+    }
+}
+
+
+Run the Maven scanner again and compare the duplication results.
+
+
+
+
+
+
+
+
